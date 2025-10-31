@@ -1,1 +1,1 @@
-rootProject.name = "harbour-space-coffee"
+rootProject.name = "harbour-space-tasks"

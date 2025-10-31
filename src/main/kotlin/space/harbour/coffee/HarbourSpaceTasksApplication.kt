@@ -4,8 +4,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
-class HarbourSpaceCoffeeApplication
+class HarbourSpaceTasksApplication
 
 fun main(args: Array<String>) {
-	runApplication<HarbourSpaceCoffeeApplication>(*args)
+	runApplication<HarbourSpaceTasksApplication>(*args)
 }
