@@ -1,17 +1,21 @@
 package space.harbour.coffee.task.controller
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.ninjasquad.springmockk.MockkBean
+import io.mockk.clearMocks
 import io.mockk.every
+import io.mockk.mockk
 import io.mockk.verify
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
+import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.annotation.Bean
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
-import space.harbour.coffee.task.controller.TaskController
 import space.harbour.coffee.task.controller.dto.NewTaskRequest
 import space.harbour.coffee.task.domain.Task
 import space.harbour.coffee.task.domain.TaskStatus
@@ -20,6 +24,7 @@ import space.harbour.coffee.task.exception.TaskNotFoundException
 import space.harbour.coffee.task.service.TaskService
 
 @WebMvcTest(TaskController::class)
+@Import(TaskControllerTest.TaskControllerTestConfig::class)
 class TaskControllerTest {
 
     @Autowired
@@ -28,8 +33,20 @@ class TaskControllerTest {
     @Autowired
     private lateinit var objectMapper: ObjectMapper
 
-    @MockkBean
+    @Autowired
     private lateinit var taskService: TaskService
+
+    @BeforeEach
+    fun setup() {
+        clearMocks(taskService)
+    }
+
+    @TestConfiguration
+    class TaskControllerTestConfig {
+
+        @Bean
+        fun taskService(): TaskService = mockk(relaxed = false)
+    }
 
     // GET /api/tasks
     @Test

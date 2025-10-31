@@ -101,18 +101,24 @@ class TaskServiceTest : FunSpec() {
         }
 
         context("addTask") {
+            val id = 1L
+
             test("should create and save new task with default NEW status") {
-                val taskEntity = TaskEntity(description = "New Task", status = TaskStatus.NEW)
-                val savedTaskEntity = TaskEntity(id = 1L, description = "New Task", status = TaskStatus.NEW)
+                val savedTaskEntity = TaskEntity(
+                    id = id,
+                    description = "New Task",
+                    status = TaskStatus.NEW
+                )
 
                 every { taskRepository.save(any()) } returns savedTaskEntity
 
                 val result = taskService.addTask("New Task")
 
                 result shouldNotBe null
-                result.id shouldBe 1
+                result.id shouldBe id
                 result.description shouldBe "New Task"
                 result.status shouldBe TaskStatus.NEW
+
                 verify(exactly = 1) {
                     taskRepository.save(match {
                         it.description == "New Task" && it.status == TaskStatus.NEW
@@ -121,16 +127,21 @@ class TaskServiceTest : FunSpec() {
             }
 
             test("should create and save new task with custom status") {
-                val savedTaskEntity = TaskEntity(id = 1L, description = "New Task", status = TaskStatus.IN_PROGRESS)
+                val savedTaskEntity = TaskEntity(
+                    id = id,
+                    description = "New Task",
+                    status = TaskStatus.IN_PROGRESS
+                )
 
                 every { taskRepository.save(any()) } returns savedTaskEntity
 
                 val result = taskService.addTask("New Task", TaskStatus.IN_PROGRESS)
 
                 result shouldNotBe null
-                result.id shouldBe 1
+                result.id shouldBe id
                 result.description shouldBe "New Task"
                 result.status shouldBe TaskStatus.IN_PROGRESS
+
                 verify(exactly = 1) {
                     taskRepository.save(match {
                         it.description == "New Task" && it.status == TaskStatus.IN_PROGRESS
@@ -140,34 +151,50 @@ class TaskServiceTest : FunSpec() {
         }
 
         context("updateTask") {
-            test("should throw TaskNotFoundException when task does not exist") {
-                every { taskRepository.findById(1L) } returns Optional.empty()
+            val id = 1L
 
-                val updatedTask = Task(id = 1, description = "Updated Task", status = TaskStatus.COMPLETED)
+            test("should throw TaskNotFoundException when task does not exist") {
+                every { taskRepository.findById(id) } returns Optional.empty()
+
+                val updatedTask = Task(
+                    id = id,
+                    description = "Updated Task",
+                    status = TaskStatus.COMPLETED
+                )
 
                 val exception = shouldThrow<TaskNotFoundException> {
-                    taskService.updateTask(1L, updatedTask)
+                    taskService.updateTask(id, updatedTask)
                 }
 
                 exception.message shouldBe "Task with id 1 not found"
-                verify(exactly = 1) { taskRepository.findById(1L) }
+
+                verify(exactly = 1) { taskRepository.findById(id) }
                 verify(exactly = 0) { taskRepository.save(any()) }
             }
 
             test("should update existing task") {
-                val existingTaskEntity = TaskEntity(id = 1L, description = "Old Task", status = TaskStatus.NEW)
-                every { taskRepository.findById(1L) } returns Optional.of(existingTaskEntity)
+                val existingTaskEntity = TaskEntity(
+                    id = id,
+                    description = "Old Task",
+                    status = TaskStatus.NEW
+                )
+                every { taskRepository.findById(id) } returns Optional.of(existingTaskEntity)
                 every { taskRepository.save(any()) } answers { firstArg() }
 
-                val updatedTask = Task(id = 1, description = "Updated Task", status = TaskStatus.COMPLETED)
-                val result = taskService.updateTask(1L, updatedTask)
+                val updatedTask = Task(
+                    id = id,
+                    description = "Updated Task",
+                    status = TaskStatus.COMPLETED
+                )
+
+                val result = taskService.updateTask(id, updatedTask)
 
                 result shouldNotBe null
-                result.id shouldBe 1
+                result.id shouldBe id
                 result.description shouldBe "Updated Task"
                 result.status shouldBe TaskStatus.COMPLETED
 
-                verify(exactly = 1) { taskRepository.findById(1L) }
+                verify(exactly = 1) { taskRepository.findById(id) }
                 verify(exactly = 1) {
                     taskRepository.save(match {
                         it.description == "Updated Task" && it.status == TaskStatus.COMPLETED
@@ -176,43 +203,47 @@ class TaskServiceTest : FunSpec() {
             }
 
             test("should only update description and status, not id") {
-                val existingTaskEntity = TaskEntity(id = 5L, description = "Old Task", status = TaskStatus.NEW)
-                every { taskRepository.findById(5L) } returns Optional.of(existingTaskEntity)
+                val id = 5L
+                val existingTaskEntity = TaskEntity(id = id, description = "Old Task", status = TaskStatus.NEW)
+                every { taskRepository.findById(id) } returns Optional.of(existingTaskEntity)
                 every { taskRepository.save(any()) } answers { firstArg() }
 
                 val updatedTask = Task(id = 999, description = "Updated Task", status = TaskStatus.IN_PROGRESS)
-                val result = taskService.updateTask(5L, updatedTask)
+                val result = taskService.updateTask(id, updatedTask)
 
                 result shouldNotBe null
-                result.id shouldBe 5  // Should keep original ID
+                result.id shouldBe id  // Should keep original ID, not 999
                 result.description shouldBe "Updated Task"
                 result.status shouldBe TaskStatus.IN_PROGRESS
 
-                verify(exactly = 1) { taskRepository.findById(5L) }
+
+                verify(exactly = 1) { taskRepository.findById(id) }
             }
         }
 
         context("deleteTask") {
+            val id = 1L
+
             test("should throw TaskNotFoundException when task does not exist") {
-                every { taskRepository.existsById(1L) } returns false
+                every { taskRepository.existsById(id) } returns false
 
                 val exception = shouldThrow<TaskNotFoundException> {
-                    taskService.deleteTask(1L)
+                    taskService.deleteTask(id)
                 }
 
                 exception.message shouldBe "Task with id 1 not found"
-                verify(exactly = 1) { taskRepository.existsById(1L) }
+                verify(exactly = 1) { taskRepository.existsById(id) }
                 verify(exactly = 0) { taskRepository.deleteById(any()) }
             }
 
             test("should delete task successfully when it exists") {
-                every { taskRepository.existsById(1L) } returns true
-                every { taskRepository.deleteById(1L) } just Runs
+                every { taskRepository.existsById(id) } returns true
+                every { taskRepository.deleteById(id) } just Runs
 
                 taskService.deleteTask(1L)
 
-                verify(exactly = 1) { taskRepository.existsById(1L) }
-                verify(exactly = 1) { taskRepository.deleteById(1L) }
+                verify(exactly = 1) { taskRepository.existsById(id) }
+                verify(exactly = 1) { taskRepository.deleteById(id) }
             }
         }
     }
