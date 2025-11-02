@@ -1,3 +1,323 @@
-# Harbour Space Tasks
+# Spring Boot Task Management API - Learning Project
 
-Reference Implementation
+A comprehensive Spring Boot RESTful API demonstrating professional backend development practices with Kotlin.
+
+## 🎯 Learning Objectives
+
+After studying this project, students will understand:
+
+- **Layered Architecture** - Proper separation of concerns (Controller → Service → Repository)
+- **Domain-Driven Design** - Separating domain models from persistence and DTOs
+- **RESTful API Design** - HTTP methods, status codes, resource naming
+- **Spring Boot Fundamentals** - Dependency injection, annotations, configuration
+- **Spring Security** - Authentication, authorization, password encryption
+- **Spring Data JPA** - Database operations, entity management
+- **Testing** - Unit tests, integration tests, slice tests (65 tests!)
+- **Kotlin for Backend** - Data classes, extension functions, null safety
+
+## 🏗️ Project Structure
+
+```
+src/main/kotlin/space/harbour/tasks/
+├── HarbourSpaceTasksApplication.kt    # Main application entry point
+├── config/
+│   └── SecurityConfig.kt              # Security configuration
+└── task/
+    ├── controller/
+    │   ├── TaskController.kt          # REST endpoints (HTTP layer)
+    │   └── dto/
+    │       ├── NewTaskRequest.kt      # Input DTO
+    │       ├── TaskResponse.kt        # Output DTO
+    │       └── ErrorResponse.kt       # Error DTO
+    ├── service/
+    │   ├── TaskService.kt             # Business logic layer
+    │   └── mapper/
+    │       └── TaskMapper.kt          # DTO ↔ Domain ↔ Entity mappers
+    ├── repository/
+    │   └── TaskRepository.kt          # Database access layer (JPA)
+    ├── domain/
+    │   ├── Task.kt                    # Domain model (business logic)
+    │   └── TaskStatus.kt              # Enum for task states
+    ├── persistence/
+    │   └── TaskEntity.kt              # JPA entity (database representation)
+    └── exception/
+        ├── GlobalExceptionHandler.kt  # Centralized error handling
+        ├── TaskNotFoundException.kt
+        ├── InvalidTaskException.kt
+        ├── TaskAlreadyExistsException.kt
+        └── TaskOperationException.kt
+```
+
+## 📚 Architecture Explained
+
+### Layered Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│          HTTP Request (JSON)                │
+└──────────────────┬──────────────────────────┘
+                   │
+         ┌─────────▼──────────┐
+         │   CONTROLLER       │  ← HTTP concerns (status codes, @RestController)
+         │  TaskController    │    Thin layer, no business logic!
+         └─────────┬──────────┘
+                   │
+         ┌─────────▼──────────┐
+         │     SERVICE        │  ← Business logic (@Service, @Transactional)
+         │   TaskService      │    Validation, rules, orchestration
+         └─────────┬──────────┘
+                   │
+         ┌─────────▼──────────┐
+         │   REPOSITORY       │  ← Database access (@Repository, JpaRepository)
+         │  TaskRepository    │    CRUD operations
+         └─────────┬──────────┘
+                   │
+         ┌─────────▼──────────┐
+         │     DATABASE       │  ← H2 in-memory database
+         │   (TaskEntity)     │
+         └────────────────────┘
+```
+
+### Domain-Driven Design
+
+We separate three types of objects:
+
+1. **Domain Models** (`Task.kt`) - Pure business logic, no annotations
+2. **Persistence Entities** (`TaskEntity.kt`) - JPA entities with @Entity
+3. **DTOs** (`TaskResponse`, `NewTaskRequest`) - Data transfer for HTTP
+
+Why?
+- Domain models stay clean and testable
+- Database structure can change without affecting business logic
+- API contracts (DTOs) can evolve independently
+
+### Mapper Pattern
+
+Extension functions convert between layers:
+- `TaskEntity.toDomain()` → `Task`
+- `Task.toResponse()` → `TaskResponse`
+- `TaskResponse.toDomain()` → `Task`
+
+## 🚀 Getting Started
+
+### Prerequisites
+- JDK 23 or later
+- Kotlin 2.2.21
+- Gradle (included via wrapper)
+
+### Running the Application
+
+```bash
+# Linux/Mac
+./gradlew bootRun
+
+# Windows
+gradlew.bat bootRun
+```
+
+Application starts on: http://localhost:8081
+
+### Default Credentials
+
+```
+Username: admin
+Password: password123
+```
+
+⚠️ **For learning purposes only!** Never hardcode credentials in production.
+
+## 📡 API Endpoints
+
+### Authentication
+All `/api/**` endpoints require HTTP Basic Auth.
+
+Example using curl:
+```bash
+curl -u admin:password123 http://localhost:8081/api/tasks
+```
+
+### Available Endpoints
+
+| Method | Endpoint | Description | Status Code |
+|--------|----------|-------------|-------------|
+| GET | `/api/tasks` | Get all tasks | 200 OK |
+| GET | `/api/tasks/{id}` | Get task by ID | 200 OK, 404 Not Found |
+| POST | `/api/tasks` | Create new task | 201 Created, 400 Bad Request |
+| PUT | `/api/tasks/{id}` | Update task | 200 OK, 404 Not Found, 400 Bad Request |
+| DELETE | `/api/tasks/{id}` | Delete task | 204 No Content, 404 Not Found |
+
+### Example Requests
+
+**Create a task:**
+```bash
+curl -X POST http://localhost:8081/api/tasks \
+  -u admin:password123 \
+  -H "Content-Type: application/json" \
+  -d '{"description": "Learn Spring Boot"}'
+```
+
+**Get all tasks:**
+```bash
+curl http://localhost:8081/api/tasks \
+  -u admin:password123
+```
+
+**Update a task:**
+```bash
+curl -X PUT http://localhost:8081/api/tasks/1 \
+  -u admin:password123 \
+  -H "Content-Type: application/json" \
+  -d '{"id": 1, "description": "Learn Kotlin", "status": "IN_PROGRESS"}'
+```
+
+## 🗄️ Database
+
+- **Type**: H2 in-memory database
+- **Console**: http://localhost:8081/h2-console
+- **JDBC URL**: `jdbc:h2:mem:testdb`
+- **Username**: `sa`
+- **Password**: (empty)
+
+Note: Data is lost when application stops (in-memory).
+
+## 🧪 Testing
+
+This project includes **65 comprehensive tests** demonstrating different testing strategies:
+
+```bash
+# Run all tests
+./gradlew test
+
+# Run specific test class
+./gradlew test --tests "TaskControllerTest"
+```
+
+### Testing Strategies
+
+1. **Controller Tests** (`TaskControllerTest`)
+   - Uses `@WebMvcTest` for testing just the web layer
+   - MockMvc for HTTP request simulation
+   - Tests authentication, CSRF protection, status codes
+
+2. **Service Tests** (`TaskServiceTest`)
+   - Unit tests with MockK for mocking
+   - Tests business logic in isolation
+
+3. **Repository Tests** (`TaskRepositoryTest`)
+   - Uses `@DataJpaTest` for JPA slice testing
+   - TestEntityManager for database verification
+
+4. **Mapper Tests** (`TaskServiceMapperTest`)
+   - Pure function testing
+   - No mocking needed
+
+5. **Security Tests** (`SecurityConfigTest`)
+   - Integration tests for security configuration
+   - Tests authentication and authorization
+
+6. **Exception Handler Tests** (`GlobalExceptionHandlerTest`)
+   - Unit tests for exception handling
+
+### Test Framework
+
+- **Kotest** - Modern Kotlin testing framework (FunSpec style)
+- **MockK** - Kotlin-friendly mocking library
+- **Spring Boot Test** - Integration testing support
+
+## 🔒 Security
+
+- **Authentication**: HTTP Basic (username/password in headers)
+- **Password Encryption**: BCrypt (industry standard)
+- **CSRF Protection**: Enabled for API endpoints
+- **Credentials**: Hardcoded for learning (⚠️ never do this in production!)
+
+### What's Protected
+- ✅ All `/api/**` endpoints require authentication
+- ✅ Passwords are encrypted with BCrypt
+- ✅ CSRF tokens required for POST/PUT/DELETE
+
+### What's Public
+- `/h2-console/**` - Database console (development only)
+- `/actuator/health` - Health check endpoint
+
+## 📝 Key Concepts Demonstrated
+
+### 1. Dependency Injection
+```kotlin
+class TaskController(
+    private val taskService: TaskService  // Injected by Spring
+)
+```
+
+### 2. RESTful Design
+- Resources as nouns (`/tasks`, not `/getTasks`)
+- HTTP methods for actions (GET, POST, PUT, DELETE)
+- Proper status codes (201 Created, 204 No Content)
+
+### 3. Exception Handling
+- Custom exceptions for domain errors
+- `@RestControllerAdvice` for global handling
+- Consistent error responses
+
+### 4. Transactions
+```kotlin
+@Transactional  // Automatic commit/rollback
+fun updateTask(id: Long, task: Task): Task
+```
+
+### 5. JPA Best Practices
+- Regular class (not data class) for @Entity
+- ID-based equals/hashCode
+- EnumType.STRING for enums
+
+## 🎓 Learning Tips
+
+### Start Here
+1. Run the application and try the API with curl/Postman
+2. Look at the H2 console to see the database
+3. Read TaskController.kt - see how HTTP requests are handled
+4. Read TaskService.kt - see where business logic lives
+5. Read the tests - see how each layer is tested
+
+### Common Gotchas
+
+| Issue | Explanation |
+|-------|-------------|
+| Why separate Task and TaskEntity? | Domain model vs database representation. Allows each to evolve independently. |
+| Why validation in Service, not Controller? | Business rules should be enforced regardless of entry point (HTTP, scheduled job, etc.). |
+| When to use @Transactional? | For any operation that modifies data. Read operations don't need it. |
+| Data class for JPA entity? | ❌ Don't do it! Use regular class to avoid equals/hashCode issues with lazy loading. |
+
+### Next Steps
+1. See `EXERCISES.md` for hands-on labs
+2. Try adding new features (see exercises)
+3. Experiment with breaking things to understand error handling
+4. Study the tests to understand testing strategies
+
+## 🛠️ Tech Stack
+
+| Technology | Version | Purpose |
+|------------|---------|---------|
+| Spring Boot | 3.5.7 | Application framework |
+| Kotlin | 2.2.21 | Programming language |
+| Spring Data JPA | 3.5.7 | Database access |
+| Spring Security | 3.5.7 | Authentication/authorization |
+| H2 Database | Runtime | In-memory database |
+| Kotest | 5.9.1 | Testing framework |
+| MockK | 1.13.13 | Mocking library |
+| Java | 23 | Runtime platform |
+
+## 📖 Further Reading
+
+- [Spring Boot Documentation](https://docs.spring.io/spring-boot/docs/current/reference/html/)
+- [Spring Data JPA](https://docs.spring.io/spring-data/jpa/docs/current/reference/html/)
+- [Kotest Documentation](https://kotest.io/)
+- [Kotlin for Spring](https://spring.io/guides/tutorials/spring-boot-kotlin/)
+
+## 📄 License
+
+This is a learning project for educational purposes.
+
+---
+
+**Questions?** Study the code comments - they explain the "why" behind each decision!

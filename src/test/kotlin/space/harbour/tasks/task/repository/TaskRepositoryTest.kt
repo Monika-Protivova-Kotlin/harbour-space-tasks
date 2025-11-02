@@ -67,9 +67,11 @@ class TaskRepositoryTest : FunSpec() {
                 val foundTask = taskRepository.findById(persistedTask.id!!)
 
                 foundTask.isPresent.shouldBe(true)
-                foundTask.get().id.shouldBe(persistedTask.id)
-                foundTask.get().description.shouldBe("Find Me")
-                foundTask.get().status.shouldBe(TaskStatus.COMPLETED)
+                with(foundTask.get()) {
+                    id.shouldBe(persistedTask.id)
+                    description.shouldBe("Find Me")
+                    status.shouldBe(TaskStatus.COMPLETED)
+                }
             }
 
             test("Should return empty Optional when task doesn't exist") {
