@@ -7,7 +7,8 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager
 import space.harbour.tasks.task.domain.TaskStatus
-import space.harbour.tasks.task.persistence.TaskEntity
+import space.harbour.tasks.task.data.TaskEntity
+import space.harbour.tasks.task.data.TaskRepository
 
 @DataJpaTest
 class TaskRepositoryTest : FunSpec() {

@@ -22,26 +22,26 @@ src/main/kotlin/space/harbour/tasks/
 ├── HarbourSpaceTasksApplication.kt    # Main application entry point
 ├── config/
 │   └── SecurityConfig.kt              # Security configuration
-└── task/
+├── exception/                         # Global exception handling (application-wide)
+│   ├── GlobalExceptionHandler.kt      # Centralized error handling for all domains
+│   └── ErrorResponse.kt               # Standard error response DTO
+└── task/                              # Task domain (can add user/, order/, etc. later)
     ├── controller/
     │   ├── TaskController.kt          # REST endpoints (HTTP layer)
     │   └── dto/
     │       ├── NewTaskRequest.kt      # Input DTO
-    │       ├── TaskResponse.kt        # Output DTO
-    │       └── ErrorResponse.kt       # Error DTO
+    │       └── TaskResponse.kt        # Output DTO
     ├── service/
     │   ├── TaskService.kt             # Business logic layer
     │   └── mapper/
     │       └── TaskMapper.kt          # DTO ↔ Domain ↔ Entity mappers
-    ├── repository/
-    │   └── TaskRepository.kt          # Database access layer (JPA)
+    ├── data/                          # Data access layer (entities + repositories)
+    │   ├── TaskEntity.kt              # JPA entity (database representation)
+    │   └── TaskRepository.kt          # JPA repository interface
     ├── domain/
     │   ├── Task.kt                    # Domain model (business logic)
     │   └── TaskStatus.kt              # Enum for task states
-    ├── persistence/
-    │   └── TaskEntity.kt              # JPA entity (database representation)
-    └── exception/
-        ├── GlobalExceptionHandler.kt  # Centralized error handling
+    └── exception/                     # Task-specific exceptions
         ├── TaskNotFoundException.kt
         ├── InvalidTaskException.kt
         ├── TaskAlreadyExistsException.kt
@@ -68,22 +68,41 @@ src/main/kotlin/space/harbour/tasks/
          └─────────┬──────────┘
                    │
          ┌─────────▼──────────┐
-         │   REPOSITORY       │  ← Database access (@Repository, JpaRepository)
-         │  TaskRepository    │    CRUD operations
+         │    DATA LAYER      │  ← Database access (entities + repositories)
+         │  TaskRepository    │    JpaRepository provides CRUD operations
+         │  TaskEntity        │    @Entity maps to database table
          └─────────┬──────────┘
                    │
          ┌─────────▼──────────┐
          │     DATABASE       │  ← H2 in-memory database
-         │   (TaskEntity)     │
+         │     (tasks)        │
          └────────────────────┘
 ```
+
+### Package Organization
+
+**Why `data/` instead of separate `persistence/` and `repository/`?**
+- `TaskEntity` and `TaskRepository` are tightly coupled (work together)
+- Simpler for students to understand: "this is the data access layer"
+- Reduces package complexity without losing clarity
+
+**Why top-level `exception/` package?**
+- `GlobalExceptionHandler` is application-wide (handles all domains)
+- When you add `User` or `Order` domains, they share the same handler
+- `ErrorResponse` is a common DTO used across all error responses
+- Demonstrates scalability for multi-domain applications
+
+**Domain-specific exceptions stay in `task/exception/`:**
+- `TaskNotFoundException`, `InvalidTaskException`, etc. are task-specific
+- Each domain can have its own exception types
+- Global handler catches them all
 
 ### Domain-Driven Design
 
 We separate three types of objects:
 
 1. **Domain Models** (`Task.kt`) - Pure business logic, no annotations
-2. **Persistence Entities** (`TaskEntity.kt`) - JPA entities with @Entity
+2. **Data Entities** (`TaskEntity.kt`) - JPA entities with @Entity in `data/` package
 3. **DTOs** (`TaskResponse`, `NewTaskRequest`) - Data transfer for HTTP
 
 Why?
@@ -287,6 +306,8 @@ fun updateTask(id: Long, task: Task): Task
 | Why validation in Service, not Controller? | Business rules should be enforced regardless of entry point (HTTP, scheduled job, etc.). |
 | When to use @Transactional? | For any operation that modifies data. Read operations don't need it. |
 | Data class for JPA entity? | ❌ Don't do it! Use regular class to avoid equals/hashCode issues with lazy loading. |
+| Why data/ instead of persistence/ + repository/? | They're tightly coupled and work together. Simpler package structure = easier to learn. |
+| Why is GlobalExceptionHandler at top level? | It's application-wide, not task-specific. Prepares for multi-domain apps (User, Order, etc.). |
 
 ### Next Steps
 1. See `EXERCISES.md` for hands-on labs

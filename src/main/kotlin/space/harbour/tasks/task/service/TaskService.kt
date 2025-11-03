@@ -7,8 +7,8 @@ import space.harbour.tasks.task.domain.TaskStatus
 import space.harbour.tasks.task.exception.InvalidTaskException
 import space.harbour.tasks.task.exception.TaskNotFoundException
 import space.harbour.tasks.task.exception.TaskOperationException
-import space.harbour.tasks.task.persistence.TaskEntity
-import space.harbour.tasks.task.repository.TaskRepository
+import space.harbour.tasks.task.data.TaskEntity
+import space.harbour.tasks.task.data.TaskRepository
 import space.harbour.tasks.task.service.mapper.toDomain
 
 /**

@@ -1,4 +1,4 @@
-package space.harbour.tasks.task.persistence
+package space.harbour.tasks.task.data
 
 import jakarta.persistence.*
 import space.harbour.tasks.task.domain.TaskStatus

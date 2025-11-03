@@ -5,7 +5,7 @@ import io.kotest.matchers.shouldBe
 import space.harbour.tasks.task.controller.dto.TaskResponse
 import space.harbour.tasks.task.domain.Task
 import space.harbour.tasks.task.domain.TaskStatus
-import space.harbour.tasks.task.persistence.TaskEntity
+import space.harbour.tasks.task.data.TaskEntity
 import space.harbour.tasks.task.service.mapper.toDomain
 import space.harbour.tasks.task.service.mapper.toEntity
 import space.harbour.tasks.task.service.mapper.toResponse

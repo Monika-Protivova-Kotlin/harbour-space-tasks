@@ -28,8 +28,8 @@ Add a `priority` field to tasks with values: LOW, MEDIUM, HIGH
    - Add `priority: TaskPriority` to `Task.kt`
    - Default value: `TaskPriority.MEDIUM`
 
-3. **Update Persistence**
-   - Add `priority` field to `TaskEntity.kt`
+3. **Update Data Entity**
+   - Add `priority` field to `TaskEntity.kt` in `task/data/`
    - Use `@Enumerated(EnumType.STRING)`
 
 4. **Update DTOs**
@@ -58,10 +58,11 @@ Add a `priority` field to tasks with values: LOW, MEDIUM, HIGH
    ```
 
 ### Learning Points
-- How changes propagate through layers (domain → entity → DTO → controller)
+- How changes propagate through layers (domain → data entity → DTO → controller)
 - Why we separate these concerns
-- How JPA enum mapping works
+- How JPA enum mapping works (`@Enumerated(EnumType.STRING)`)
 - Importance of updating tests
+- Understanding the `data/` package (entities + repositories together)
 
 ---
 

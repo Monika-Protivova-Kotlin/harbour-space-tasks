@@ -1,10 +1,13 @@
-package space.harbour.tasks.task.exception
+package space.harbour.tasks.exception
 
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
-import space.harbour.tasks.task.controller.dto.ErrorResponse
+import space.harbour.tasks.task.exception.InvalidTaskException
+import space.harbour.tasks.task.exception.TaskAlreadyExistsException
+import space.harbour.tasks.task.exception.TaskNotFoundException
+import space.harbour.tasks.task.exception.TaskOperationException
 
 @RestControllerAdvice
 class GlobalExceptionHandler {

@@ -1,4 +1,4 @@
-package space.harbour.tasks.task.controller.dto
+package space.harbour.tasks.exception
 
 data class ErrorResponse(
     val status: Int,

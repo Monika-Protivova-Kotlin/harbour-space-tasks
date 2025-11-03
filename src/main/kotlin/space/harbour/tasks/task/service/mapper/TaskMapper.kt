@@ -2,7 +2,7 @@ package space.harbour.tasks.task.service.mapper
 
 import space.harbour.tasks.task.controller.dto.TaskResponse
 import space.harbour.tasks.task.domain.Task
-import space.harbour.tasks.task.persistence.TaskEntity
+import space.harbour.tasks.task.data.TaskEntity
 
 // TaskEntity -> Task (Domain)
 fun TaskEntity.toDomain(): Task {

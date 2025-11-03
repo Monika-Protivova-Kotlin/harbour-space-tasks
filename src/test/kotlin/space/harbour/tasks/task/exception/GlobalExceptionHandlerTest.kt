@@ -3,6 +3,8 @@ package space.harbour.tasks.task.exception
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import org.springframework.http.HttpStatus
+import space.harbour.tasks.exception.GlobalExceptionHandler
+import space.harbour.tasks.exception.ErrorResponse
 
 class GlobalExceptionHandlerTest : FunSpec() {
 

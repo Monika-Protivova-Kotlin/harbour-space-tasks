@@ -19,7 +19,7 @@ import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import space.harbour.tasks.config.SecurityConfig
-import space.harbour.tasks.task.controller.dto.ErrorResponse
+import space.harbour.tasks.exception.ErrorResponse
 import space.harbour.tasks.task.controller.dto.NewTaskRequest
 import space.harbour.tasks.task.controller.dto.TaskResponse
 import space.harbour.tasks.task.domain.Task
