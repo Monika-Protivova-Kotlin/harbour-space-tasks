@@ -42,6 +42,15 @@ class TaskService(
     /**
      * Repository for database access.
      * Injected by Spring using constructor injection (recommended).
+     *
+     * This service uses TaskRepository (JPA) by default.
+     * There's also TaskJdbcRepository (JDBC) available as an alternative implementation.
+     *
+     * For students: Compare the two approaches:
+     * - JPA (TaskRepository): Less code, automatic SQL generation, easier to maintain
+     * - JDBC (TaskJdbcRepository): More control, explicit SQL, better for complex queries
+     *
+     * To switch to JDBC: Change type to TaskJdbcRepository and update @Primary annotation.
      */
     private val taskRepository: TaskRepository,
 ) {

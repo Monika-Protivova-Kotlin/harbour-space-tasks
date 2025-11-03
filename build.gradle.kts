@@ -36,6 +36,15 @@ dependencies {
 	testImplementation("io.kotest:kotest-assertions-core:5.9.1")
 	testImplementation("io.kotest.extensions:kotest-extensions-spring:1.3.0")
 	testImplementation("io.mockk:mockk:1.13.13")
+
+	// Testcontainers for integration testing with real databases
+	testImplementation(platform("org.testcontainers:testcontainers-bom:1.19.3"))
+	testImplementation("org.testcontainers:postgresql")
+	testImplementation("org.testcontainers:junit-jupiter")
+
+	// PostgreSQL driver for Testcontainers tests
+	testImplementation("org.postgresql:postgresql")
+
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 

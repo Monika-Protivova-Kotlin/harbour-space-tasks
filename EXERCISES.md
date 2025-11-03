@@ -444,6 +444,115 @@ Replace H2 with PostgreSQL using Docker.
 - Cache `getTasks()` result
 - Learn cache eviction on updates
 
+### Challenge 6: Explore JDBC Repository Implementation 🎯
+
+**Goal**: Understand the trade-offs between JPA and JDBC by exploring the existing implementations.
+
+**Activities**:
+1. **Compare Implementations**
+   - Open `TaskRepository.kt` (JPA) and `TaskJdbcRepository.kt` (JDBC) side-by-side
+   - Notice how JPA has minimal code vs JDBC's explicit SQL
+   - Read the educational comments in `TaskJdbcRepository.kt`
+
+2. **Switch to JDBC**
+   - Move `@Primary` from `TaskRepository` to `TaskJdbcRepository`
+   - Run the application - it should work identically!
+   - Check H2 console to see the same database operations
+
+3. **Run Tests**
+   ```bash
+   ./gradlew test --tests "TaskJdbcRepositoryTest"
+   ```
+   - Compare test structure with `TaskRepositoryTest`
+   - Notice similarities in testing approach
+
+4. **Add a Custom Query**
+   - Add this method to `TaskJdbcRepository`:
+   ```kotlin
+   fun findByStatus(status: TaskStatus): List<TaskEntity> {
+       val sql = "SELECT id, description, status FROM tasks WHERE status = :status"
+       val params = MapSqlParameterSource("status", status.name)
+       return jdbcTemplate.query(sql, params, rowMapper)
+   }
+   ```
+   - Add to the interface `TaskDataRepository`
+   - Implement the JPA version using Spring Data method naming
+
+5. **Discussion Questions**
+   - When would you choose JDBC over JPA?
+   - What are the maintenance costs of JDBC?
+   - How does performance compare?
+
+**Learning Points**:
+- Full control vs convenience trade-off
+- Explicit SQL vs generated queries
+- When manual SQL is worth the extra code
+- Dependency Inversion Principle (both implement same interface)
+
+---
+
+### Challenge 7: Implement Testcontainers for Your Tests 🐳
+
+**Goal**: Learn production-like testing with real databases in Docker containers.
+
+**Prerequisites**:
+- Docker Desktop installed and running
+- Basic understanding of Docker concepts
+
+**Steps**:
+
+1. **Study the Example**
+   - Read `TaskRepositoryIntegrationTest.kt` thoroughly
+   - Understand `@Testcontainers` and `@Container` annotations
+   - Notice how `@DynamicPropertySource` configures Spring
+
+2. **Run the Integration Test**
+   ```bash
+   ./gradlew test --tests "TaskRepositoryIntegrationTest"
+   ```
+   - Watch Docker pull PostgreSQL image (first time only)
+   - See container start, tests run, container stop
+   - Check test output for "✅" success messages
+
+3. **Create Your Own Testcontainer Test**
+   - Create `TaskServiceIntegrationTest.kt`
+   - Test full flow: HTTP → Service → JDBC Repository → PostgreSQL
+   - Use MockMvc + Testcontainers together
+
+4. **Test Database-Specific Features**
+   - Add a test that uses PostgreSQL-specific SQL
+   - Example: Test `ILIKE` (case-insensitive search in PostgreSQL)
+   ```kotlin
+   test("Should search tasks case-insensitively with PostgreSQL ILIKE") {
+       // Add method to TaskJdbcRepository using ILIKE
+       // Test it works in PostgreSQL container
+   }
+   ```
+
+5. **Performance Comparison**
+   - Time H2 tests: `./gradlew test`
+   - Time Testcontainer tests: `./gradlew test --tests "*IntegrationTest"`
+   - Understand the speed vs confidence trade-off
+
+6. **Try Different Databases**
+   - Change container from PostgreSQL to MySQL:
+   ```kotlin
+   val mysqlContainer = MySQLContainer("mysql:8")
+   ```
+   - See how your code behaves with different databases
+   - Discover any PostgreSQL-specific assumptions
+
+**Learning Points**:
+- Real database testing catches production issues early
+- Docker makes it easy to test against multiple databases
+- Integration tests give high confidence but are slower
+- Test pyramid: many unit tests, fewer integration tests
+
+**Troubleshooting**:
+- "Could not find Docker" → Start Docker Desktop
+- Slow first run → Docker pulling image, subsequent runs faster
+- Port conflicts → Testcontainers uses random ports automatically
+
 ---
 
 ## 📚 Tips for Success

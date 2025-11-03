@@ -36,8 +36,10 @@ src/main/kotlin/space/harbour/tasks/
     │   └── mapper/
     │       └── TaskMapper.kt          # DTO ↔ Domain ↔ Entity mappers
     ├── data/                          # Data access layer (entities + repositories)
+    │   ├── TaskDataRepository.kt      # Common interface for both JPA and JDBC
     │   ├── TaskEntity.kt              # JPA entity (database representation)
-    │   └── TaskRepository.kt          # JPA repository interface
+    │   ├── TaskRepository.kt          # JPA repository implementation (@Primary)
+    │   └── TaskJdbcRepository.kt      # JDBC repository implementation (alternative)
     ├── domain/
     │   ├── Task.kt                    # Domain model (business logic)
     │   └── TaskStatus.kt              # Enum for task states
@@ -109,6 +111,41 @@ Why?
 - Domain models stay clean and testable
 - Database structure can change without affecting business logic
 - API contracts (DTOs) can evolve independently
+
+### Data Access Strategies: JPA vs JDBC
+
+This project demonstrates **two approaches** to database access, allowing students to compare:
+
+#### **JPA (Java Persistence API)** - `TaskRepository`
+- **What**: Object-Relational Mapping (ORM) framework
+- **Advantages**:
+  - Minimal code (CRUD operations automatic)
+  - Database-independent (works with PostgreSQL, MySQL, Oracle, etc.)
+  - Automatic dirty checking and lazy loading
+  - Query methods from method names (`findByStatus`, etc.)
+- **Best for**: Standard CRUD operations, rapid development, database portability
+- **Used by default** (marked with `@Primary`)
+
+#### **JDBC (Java Database Connectivity)** - `TaskJdbcRepository`
+- **What**: Direct SQL execution with Spring's `JdbcTemplate`
+- **Advantages**:
+  - Full control over SQL queries
+  - Better performance for complex queries
+  - No "magic" - explicit about what runs
+  - Easier to optimize and debug
+- **Best for**: Complex queries, batch operations, performance-critical code, legacy databases
+- **Available as alternative** implementation
+
+#### **Common Interface** - `TaskDataRepository`
+Both implementations share a common interface, demonstrating:
+- **Dependency Inversion Principle** - Service depends on abstraction, not implementation
+- **Flexibility** - Switch implementations by changing `@Primary` annotation
+- **Testability** - Easy to mock the interface
+
+**For students**: You can switch between JPA and JDBC by:
+1. Moving `@Primary` annotation from `TaskRepository` to `TaskJdbcRepository`
+2. Using `@Qualifier("taskJdbcRepository")` when injecting
+3. Using Spring profiles for different environments
 
 ### Mapper Pattern
 
@@ -225,16 +262,28 @@ This project includes **65 comprehensive tests** demonstrating different testing
 3. **Repository Tests** (`TaskRepositoryTest`)
    - Uses `@DataJpaTest` for JPA slice testing
    - TestEntityManager for database verification
+   - Tests with H2 in-memory database
 
-4. **Mapper Tests** (`TaskServiceMapperTest`)
+4. **JDBC Repository Tests** (`TaskJdbcRepositoryTest`)
+   - Uses `@JdbcTest` for JDBC slice testing
+   - Tests manual SQL operations with JdbcTemplate
+   - Compares JDBC approach with JPA
+
+5. **Integration Tests with Testcontainers** (`TaskRepositoryIntegrationTest`)
+   - Tests with **real PostgreSQL database** in Docker container
+   - Demonstrates production-like testing environment
+   - Requires Docker to be running
+   - Slower but higher confidence than H2 tests
+
+6. **Mapper Tests** (`TaskServiceMapperTest`)
    - Pure function testing
    - No mocking needed
 
-5. **Security Tests** (`SecurityConfigTest`)
+7. **Security Tests** (`SecurityConfigTest`)
    - Integration tests for security configuration
    - Tests authentication and authorization
 
-6. **Exception Handler Tests** (`GlobalExceptionHandlerTest`)
+8. **Exception Handler Tests** (`GlobalExceptionHandlerTest`)
    - Unit tests for exception handling
 
 ### Test Framework
@@ -242,6 +291,30 @@ This project includes **65 comprehensive tests** demonstrating different testing
 - **Kotest** - Modern Kotlin testing framework (FunSpec style)
 - **MockK** - Kotlin-friendly mocking library
 - **Spring Boot Test** - Integration testing support
+- **Testcontainers** - Real Docker containers for integration tests (PostgreSQL)
+
+### Testing Levels
+
+This project demonstrates the **testing pyramid**:
+
+1. **Unit Tests** (Fast, Many)
+   - Service tests with mocked dependencies
+   - Mapper tests (pure functions)
+   - Run in milliseconds, no database needed
+
+2. **Slice Tests** (Medium Speed)
+   - `@WebMvcTest` for controllers only
+   - `@DataJpaTest` for repositories with H2
+   - `@JdbcTest` for JDBC repositories with H2
+   - Faster than full integration, still realistic
+
+3. **Integration Tests** (Slower, Fewer)
+   - Testcontainers with real PostgreSQL
+   - Full Spring context
+   - Production-like environment
+   - High confidence, but takes seconds to run
+
+**For students**: Run unit tests frequently (fast feedback), integration tests before commits (confidence)
 
 ## 🔒 Security
 
@@ -308,6 +381,8 @@ fun updateTask(id: Long, task: Task): Task
 | Data class for JPA entity? | ❌ Don't do it! Use regular class to avoid equals/hashCode issues with lazy loading. |
 | Why data/ instead of persistence/ + repository/? | They're tightly coupled and work together. Simpler package structure = easier to learn. |
 | Why is GlobalExceptionHandler at top level? | It's application-wide, not task-specific. Prepares for multi-domain apps (User, Order, etc.). |
+| Should I use JPA or JDBC? | JPA for standard CRUD (faster development). JDBC for complex queries or performance-critical operations. |
+| What are Testcontainers for? | Running tests against real databases (PostgreSQL, MySQL, etc.) in Docker. Higher confidence than H2. |
 
 ### Next Steps
 1. See `EXERCISES.md` for hands-on labs
@@ -321,11 +396,14 @@ fun updateTask(id: Long, task: Task): Task
 |------------|---------|---------|
 | Spring Boot | 3.5.7 | Application framework |
 | Kotlin | 2.2.21 | Programming language |
-| Spring Data JPA | 3.5.7 | Database access |
+| Spring Data JPA | 3.5.7 | ORM database access (primary) |
+| Spring Data JDBC | 3.5.7 | Manual SQL database access (alternative) |
 | Spring Security | 3.5.7 | Authentication/authorization |
-| H2 Database | Runtime | In-memory database |
+| H2 Database | Runtime | In-memory database (development & tests) |
+| PostgreSQL | Test | Production database (Testcontainers) |
 | Kotest | 5.9.1 | Testing framework |
 | MockK | 1.13.13 | Mocking library |
+| Testcontainers | 1.19.3 | Docker containers for integration tests |
 | Java | 23 | Runtime platform |
 
 ## 📖 Further Reading
