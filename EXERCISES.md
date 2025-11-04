@@ -555,6 +555,211 @@ Replace H2 with PostgreSQL using Docker.
 
 ---
 
+### Challenge 8: Explore jOOQ Type-Safe SQL 🎯
+
+**Goal**: Learn type-safe SQL query building with compile-time checking and code generation.
+
+**Prerequisites**:
+- Understanding of SQL (SELECT, INSERT, UPDATE, DELETE)
+- Completed Challenge 6 (JDBC) for comparison
+
+**What is jOOQ?**
+- jOOQ generates Java code from your database schema
+- Provides type-safe DSL for building SQL queries
+- Catches typos at compile-time, not runtime
+- Best of both worlds: SQL control + type safety
+
+**Steps**:
+
+1. **Study the jOOQ Repository**
+   - Read `TaskJooqRepository.kt` thoroughly
+   - Compare with `TaskJdbcRepository.kt` (JDBC) and `TaskRepository.kt` (JPA)
+   - Notice type-safe references: `TASKS.ID`, `TASKS.DESCRIPTION`, `TASKS.STATUS`
+   - See how compile-time checking prevents typos
+
+2. **Understand Code Generation**
+   ```bash
+   # Generate jOOQ code from schema.sql
+   ./gradlew generateJooq
+
+   # Check generated code
+   ls build/generated-sources/jooq/space/harbour/tasks/generated/jooq/tables/
+   ```
+   - Generated files:
+     - `Tasks.java` - Table reference with column definitions
+     - `TasksRecord.java` - Database row representation
+     - `Tasks.java` (in pojos/) - POJO data class
+   - These provide type-safe access to your database structure
+
+3. **Run jOOQ Tests**
+   ```bash
+   ./gradlew test --tests "TaskJooqRepositoryTest"
+   ```
+   - All tests should pass (13 tests)
+   - Read the "jOOQ vs JDBC vs JPA" comparison test output
+   - Understand the educational comments
+
+4. **Compare the Three Approaches**
+
+   **Create a new task with each approach:**
+
+   ```kotlin
+   // JPA - Minimal code, automatic SQL
+   taskRepository.save(TaskEntity(description = "Learn JPA", status = TaskStatus.NEW))
+
+   // JDBC - Manual SQL, full control
+   jdbcTemplate.update(
+       "INSERT INTO tasks (description, status) VALUES (?, ?)",
+       "Learn JDBC", "NEW"
+   )
+
+   // jOOQ - Type-safe DSL, compile-time checking
+   dsl.insertInto(TASKS)
+       .set(TASKS.DESCRIPTION, "Learn jOOQ")
+       .set(TASKS.STATUS, "NEW")
+       .execute()
+   ```
+
+   **Find tasks with status = "NEW":**
+
+   ```kotlin
+   // JPA - Method naming convention
+   taskRepository.findByStatus(TaskStatus.NEW)
+
+   // JDBC - SQL string
+   jdbcTemplate.query("SELECT * FROM tasks WHERE status = ?", rowMapper, "NEW")
+
+   // jOOQ - Type-safe WHERE clause
+   dsl.selectFrom(TASKS)
+       .where(TASKS.STATUS.eq("NEW"))  // Compile error if wrong type!
+       .fetch()
+   ```
+
+5. **Switch to jOOQ Repository**
+   - Open `TaskRepository.kt` (JPA) and remove `@Primary`
+   - Open `TaskJooqRepository.kt` and add `@Primary`
+   - Run the application: `./gradlew bootRun`
+   - Test with curl:
+   ```bash
+   curl -X POST http://localhost:8080/api/tasks \
+     -H "Content-Type: application/json" \
+     -u "admin:admin123" \
+     -d '{"description":"Task via jOOQ"}'
+   ```
+   - Application now uses jOOQ for all database operations!
+
+6. **Experience Type Safety**
+   - Open `TaskJooqRepository.kt`
+   - Try changing `TASKS.DESCRIPTION` to `TASKS.DESCRIPTIO` (typo)
+   - Run `./gradlew compileKotlin`
+   - **Compile error!** This is jOOQ's power - typos caught before runtime
+   - Fix the typo and recompile
+
+7. **Add a Custom Query Method**
+
+   Add this method to `TaskJooqRepository.kt`:
+   ```kotlin
+   fun findByStatusTypeSafe(status: TaskStatus): List<TaskEntity> {
+       return dsl.selectFrom(TASKS)
+           .where(TASKS.STATUS.eq(status.name))
+           .fetch()
+           .map { toEntity(it) }
+   }
+   ```
+
+   Add a test in `TaskJooqRepositoryTest.kt`:
+   ```kotlin
+   test("Should find tasks by status with type-safe query") {
+       // Given: Tasks with different statuses
+       taskJooqRepository.save(TaskEntity(description = "New Task", status = TaskStatus.NEW))
+       taskJooqRepository.save(TaskEntity(description = "Done Task", status = TaskStatus.COMPLETED))
+
+       // When: Find by status
+       val newTasks = taskJooqRepository.findByStatusTypeSafe(TaskStatus.NEW)
+
+       // Then: Only NEW tasks returned
+       newTasks shouldHaveSize 1
+       newTasks[0].status shouldBe TaskStatus.NEW
+   }
+   ```
+
+8. **Simulate Schema Change**
+
+   Imagine renaming column `description` to `task_name`:
+
+   - Edit `src/main/resources/schema.sql`:
+   ```sql
+   CREATE TABLE IF NOT EXISTS tasks (
+       id BIGINT AUTO_INCREMENT PRIMARY KEY,
+       task_name VARCHAR(1000) NOT NULL,  -- Renamed from description
+       status VARCHAR(50) NOT NULL
+   );
+   ```
+
+   - Regenerate jOOQ code: `./gradlew generateJooq`
+   - Try to compile: `./gradlew compileKotlin`
+   - **Compilation fails!** jOOQ now has `TASKS.TASK_NAME`, not `TASKS.DESCRIPTION`
+   - All references to old column name are compile errors
+   - You MUST update all usages - no silent runtime failures!
+
+   **(Don't forget to revert schema.sql back!)**
+
+9. **Complex Query Challenge**
+
+   Add a method to find tasks with pagination:
+   ```kotlin
+   fun findAllPaginated(page: Int, size: Int): List<TaskEntity> {
+       return dsl.selectFrom(TASKS)
+           .orderBy(TASKS.ID.desc())
+           .limit(size)
+           .offset(page * size)
+           .fetch()
+           .map { toEntity(it) }
+   }
+   ```
+
+   Notice how type-safe it is:
+   - `.orderBy(TASKS.ID.desc())` - ID is Long, compiler ensures it's sortable
+   - `.limit(size)` - size must be Int
+   - IntelliJ autocomplete shows all available methods!
+
+**Learning Points**:
+
+| Aspect | JPA | JDBC | jOOQ |
+|--------|-----|------|------|
+| **Code Amount** | Minimal (1 line) | Verbose (5-10 lines) | Moderate (3-5 lines) |
+| **Type Safety** | Medium (entity level) | None (strings) | Full (compile-time) |
+| **SQL Control** | Limited | Full | Full |
+| **Refactoring** | OK (entities) | Risky (strings) | Safe (compile errors) |
+| **Performance** | Good (cached) | Excellent | Excellent |
+| **Complex Queries** | Difficult (Criteria API) | Easy (raw SQL) | Easy (type-safe DSL) |
+| **Learning Curve** | Moderate (ORM concepts) | Easy (just SQL) | Moderate (DSL + generation) |
+
+**When to Use Each**:
+- **JPA**: Simple CRUD, rapid prototyping, domain-driven design
+- **JDBC**: Legacy systems, maximum performance, complex batch operations
+- **jOOQ**: Complex queries, large teams (refactoring safety), database-first design
+
+**Pro Tips**:
+- jOOQ generation can connect to live database or read DDL scripts (we use DDL)
+- Generated code can be version-controlled or regenerated on build (we regenerate)
+- jOOQ supports advanced SQL: CTEs, window functions, JSON operators
+- Works with multiple databases: PostgreSQL, MySQL, Oracle, SQL Server, H2
+
+**Further Exploration**:
+- Try `dsl.select(TASKS.STATUS, DSL.count()).from(TASKS).groupBy(TASKS.STATUS)` (aggregate queries)
+- Explore joins with multiple tables (when you add them)
+- Look at jOOQ's `Condition` API for dynamic WHERE clauses
+- Check jOOQ docs: https://www.jooq.org/
+
+**Discussion Questions**:
+1. Why might a large team prefer jOOQ over JDBC despite extra complexity?
+2. In what scenarios would JPA be better than jOOQ?
+3. How does compile-time checking help with database refactoring?
+4. Would you use jOOQ for a simple TODO app? Why or why not?
+
+---
+
 ## 📚 Tips for Success
 
 ### Before Starting Each Lab

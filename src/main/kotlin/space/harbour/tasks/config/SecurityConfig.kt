@@ -64,9 +64,16 @@ class SecurityConfig {
 
             // Configure CSRF (Cross-Site Request Forgery) protection
             .csrf { csrf ->
-                // Disable CSRF for H2 console (needed for the H2 web interface to work)
-                // For students: CSRF protection is important! Only disable for specific cases.
-                csrf.ignoringRequestMatchers("/h2-console/**")
+                // Disable CSRF for REST API endpoints and H2 console
+                // For students: Why disable CSRF for /api/**?
+                // - CSRF protection is designed for cookie-based authentication (sessions)
+                // - REST APIs using HTTP Basic auth are stateless (no cookies)
+                // - CSRF attacks exploit browsers automatically sending cookies
+                // - Since we use Authorization header (not cookies), CSRF isn't a concern
+                // - This is standard practice for REST APIs
+                //
+                // H2 console needs CSRF disabled for the web interface to work
+                csrf.ignoringRequestMatchers("/api/**", "/h2-console/**")
             }
 
             // Configure HTTP headers

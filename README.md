@@ -36,10 +36,11 @@ src/main/kotlin/space/harbour/tasks/
     │   └── mapper/
     │       └── TaskMapper.kt          # DTO ↔ Domain ↔ Entity mappers
     ├── data/                          # Data access layer (entities + repositories)
-    │   ├── TaskDataRepository.kt      # Common interface for both JPA and JDBC
+    │   ├── TaskDataRepository.kt      # Common interface for JDBC and jOOQ
     │   ├── TaskEntity.kt              # JPA entity (database representation)
     │   ├── TaskRepository.kt          # JPA repository implementation (@Primary)
-    │   └── TaskJdbcRepository.kt      # JDBC repository implementation (alternative)
+    │   ├── TaskJdbcRepository.kt      # JDBC repository implementation (alternative)
+    │   └── TaskJooqRepository.kt      # jOOQ repository implementation (alternative)
     ├── domain/
     │   ├── Task.kt                    # Domain model (business logic)
     │   └── TaskStatus.kt              # Enum for task states
@@ -112,9 +113,9 @@ Why?
 - Database structure can change without affecting business logic
 - API contracts (DTOs) can evolve independently
 
-### Data Access Strategies: JPA vs JDBC
+### Data Access Strategies: JPA vs JDBC vs jOOQ
 
-This project demonstrates **two approaches** to database access, allowing students to compare:
+This project demonstrates **three approaches** to database access, allowing students to compare:
 
 #### **JPA (Java Persistence API)** - `TaskRepository`
 - **What**: Object-Relational Mapping (ORM) framework
@@ -123,6 +124,10 @@ This project demonstrates **two approaches** to database access, allowing studen
   - Database-independent (works with PostgreSQL, MySQL, Oracle, etc.)
   - Automatic dirty checking and lazy loading
   - Query methods from method names (`findByStatus`, etc.)
+- **Disadvantages**:
+  - Less control over generated SQL
+  - Can generate inefficient queries for complex operations
+  - Learning curve for relationships and cascading
 - **Best for**: Standard CRUD operations, rapid development, database portability
 - **Used by default** (marked with `@Primary`)
 
@@ -133,19 +138,56 @@ This project demonstrates **two approaches** to database access, allowing studen
   - Better performance for complex queries
   - No "magic" - explicit about what runs
   - Easier to optimize and debug
+- **Disadvantages**:
+  - More boilerplate code
+  - SQL as strings (no compile-time checking)
+  - Manual row mapping
+  - Typos found at runtime
 - **Best for**: Complex queries, batch operations, performance-critical code, legacy databases
 - **Available as alternative** implementation
 
+#### **jOOQ (Java Object Oriented Querying)** - `TaskJooqRepository`
+- **What**: Type-safe SQL query builder with code generation
+- **Advantages**:
+  - Full control over SQL + compile-time type checking
+  - Typos caught by compiler (no runtime SQL errors)
+  - Refactoring-friendly (rename column → code won't compile)
+  - Less boilerplate than raw JDBC
+  - Works with complex queries, joins, subqueries
+- **Disadvantages**:
+  - Requires code generation step (`./gradlew generateJooq`)
+  - Generated code adds to project size
+  - Learning curve for DSL syntax
+- **Best for**: Complex queries where you want both control AND type-safety
+- **Available as alternative** implementation (generates code from `schema.sql`)
+
+**Code Generation**: jOOQ generates Java classes from your database schema:
+```bash
+./gradlew generateJooq  # Generates type-safe code from schema.sql
+```
+
 #### **Common Interface** - `TaskDataRepository`
-Both implementations share a common interface, demonstrating:
+JDBC and jOOQ implementations share a common interface, demonstrating:
 - **Dependency Inversion Principle** - Service depends on abstraction, not implementation
 - **Flexibility** - Switch implementations by changing `@Primary` annotation
 - **Testability** - Easy to mock the interface
 
-**For students**: You can switch between JPA and JDBC by:
-1. Moving `@Primary` annotation from `TaskRepository` to `TaskJdbcRepository`
-2. Using `@Qualifier("taskJdbcRepository")` when injecting
+**For students**: You can switch between implementations by:
+1. Moving `@Primary` annotation between `TaskRepository`, `TaskJdbcRepository`, or `TaskJooqRepository`
+2. Using `@Qualifier("taskJooqRepository")` when injecting
 3. Using Spring profiles for different environments
+
+**Quick Comparison**:
+
+| Feature | JPA | JDBC | jOOQ |
+|---------|-----|------|------|
+| Code Amount | ⭐⭐⭐ Minimal | ⭐ Verbose | ⭐⭐ Moderate |
+| Type Safety | ⭐⭐ Medium | ⭐ None (Strings) | ⭐⭐⭐ Full |
+| SQL Control | ⭐ Limited | ⭐⭐⭐ Full | ⭐⭐⭐ Full |
+| Performance | ⭐⭐ Good | ⭐⭐⭐ Excellent | ⭐⭐⭐ Excellent |
+| Learning Curve | ⭐⭐ Moderate | ⭐⭐⭐ Easy | ⭐⭐ Moderate |
+| Complex Queries | ⭐ Difficult | ⭐⭐⭐ Easy | ⭐⭐⭐ Easy |
+| Refactoring | ⭐⭐ OK | ⭐ Risky | ⭐⭐⭐ Safe |
 
 ### Mapper Pattern
 
@@ -398,6 +440,7 @@ fun updateTask(id: Long, task: Task): Task
 | Kotlin | 2.2.21 | Programming language |
 | Spring Data JPA | 3.5.7 | ORM database access (primary) |
 | Spring Data JDBC | 3.5.7 | Manual SQL database access (alternative) |
+| jOOQ | 3.19.27 | Type-safe SQL query builder (alternative) |
 | Spring Security | 3.5.7 | Authentication/authorization |
 | H2 Database | Runtime | In-memory database (development & tests) |
 | PostgreSQL | Test | Production database (Testcontainers) |
